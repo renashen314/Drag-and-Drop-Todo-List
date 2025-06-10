@@ -1,5 +1,5 @@
 export type TodoProps = {
-    id: number
+    id: string
     text: string
     status: string
 }

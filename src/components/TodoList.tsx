@@ -4,9 +4,10 @@ import { DndContext } from "@dnd-kit/core";
 import { Draggable } from "./Draggable";
 import { Droppable } from "./Droppable";
 import { v4 as uuidv4 } from "uuid";
+import useLocalStorage from "../hooks/useLocalStorage";
 
 const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
-  const [todos, setTodos] = useState<TodoProps[]>(tasks);
+  const [todos, setTodos] = useLocalStorage("to-do list", tasks);
   const [newTodo, setNewTodo] = useState<string>("");
 
   function handleAddTodo(e: React.FormEvent<HTMLFormElement>) {
@@ -71,6 +72,12 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
                 .map((todo) => (
                   <li key={todo.id} className="border p-2 rounded">
                     {todo.text}
+                    <button
+                      onClick={()=>handleDeleteTodo(todo)}
+                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
+                    >
+                      X
+                    </button>
                   </li>
                 ))}
             </ul>
