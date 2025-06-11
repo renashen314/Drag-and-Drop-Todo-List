@@ -1,14 +1,32 @@
 import { useState } from "react";
 import type { TodoProps, TodoStatus } from "../utils/types";
-import { DndContext } from "@dnd-kit/core";
-import { Draggable } from "./Draggable";
-import { Droppable } from "./Droppable";
+import "../index.css"
+import {
+  closestCorners,
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import { v4 as uuidv4 } from "uuid";
 import useLocalStorage from "../hooks/useLocalStorage";
+import Task from "./Task";
 
 const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
   const [todos, setTodos] = useLocalStorage("to-do list", tasks);
   const [newTodo, setNewTodo] = useState<string>("");
+  //set-up for drag and drop
+  // const containers = ["to-do", "in-progress", "done"];
+  const [parent, setParent] = useState(null);
+  // const [isDropped, setIsDropped] = useState(false);
 
   function handleAddTodo(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -22,111 +40,116 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
     );
   }
 
-  function handleDeleteTodo(todo: TodoProps) {
-    setTodos((prev) => prev.filter((t) => t.id !== todo.id));
+  function handleDeleteTodo(id: string) {
+    setTodos((prev) => prev.filter((t) => t.id !== id));
   }
 
-  //set-up for drag and drop
-  const containers = ["to-do", "in-progress", "done"];
-  const [parent, setParent] = useState(null);
-  const draggableMarkup = <Draggable id="draggable">Drag me</Draggable>;
-  const [isDropped, setIsDropped] = useState(false);
-
+  function getTodoPos(id) {
+    return todos.findIndex((todo) => todo.id === id);
+  }
   function handleDragEnd(event) {
-    const { over } = event;
-    if (over && over.id === "droppable") {
-      setIsDropped(true);
-    }
+    const { active, over } = event;
+    if (active.id == over.id) return;
+    setTodos((todos) => {
+      const originalPos = getTodoPos(active.id);
+      const newPos = getTodoPos(over.id);
+      return arrayMove(todos, originalPos, newPos);
+    });
+
     setParent(over ? over.id : null);
   }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
   return (
     <>
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">Todo List</h1>
+      <div className="todo-container">
+        <h1 className="todo-title">Todo List</h1>
 
-        {/* Form to add new todo */}
-        <form onSubmit={handleAddTodo} className="flex gap-2 mb-6">
+        <form onSubmit={handleAddTodo} className="todo-form">
           <input
             type="text"
             value={newTodo}
             onChange={(e) => setNewTodo(e.target.value)}
             placeholder="Add a new todo..."
-            className="border px-3 py-2 flex-1 rounded"
+            className="todo-input"
           />
-          <button
-            type="submit"
-            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-          >
+          <button type="submit" className="todo-button">
             Add To-Do
           </button>
         </form>
+        {/* drag and drop feature avaliable and starts here */}
+        <DndContext
+          collisionDetection={closestCorners}
+          onDragEnd={handleDragEnd}
+          sensors={sensors}
+        >
+          {/* Columns for each status */}
+          <div className="todo-columns">
+            {/* To-Do Column */}
+            <div>
+              <h2 className="todo-column-title">To Do</h2>
+              <ul className="todo-list">
+                <SortableContext
+                  items={todos}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {todos
+                    .filter((t: TodoProps) => t.status === "to-do")
+                    .map((todo: TodoProps) => (
+                      <Task
+                        id={todo.id}
+                        key={todo.id}
+                        text={todo.text}
+                        handleDeleteTodo={handleDeleteTodo}
+                      />
+                    ))}
+                </SortableContext>
+              </ul>
+            </div>
 
-        {/* Columns for each status */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* To-Do Column */}
-          <div>
-            <h2 className="text-lg font-semibold mb-2">To Do</h2>
-            <ul className="space-y-2">
-              {todos
-                .filter((t) => t.status === "to-do")
-                .map((todo) => (
-                  <li key={todo.id} className="border p-2 rounded">
-                    {todo.text}
-                    <button
-                      onClick={()=>handleDeleteTodo(todo)}
-                      className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                    >
-                      X
-                    </button>
-                  </li>
-                ))}
-            </ul>
-          </div>
+            {/* In Progress Column */}
+            <div>
+            <h2 className="todo-column-title">In Progress</h2>
+            <ul className="todo-list">
+                {todos
+                  .filter((t) => t.status === "in-progress")
+                  .map((todo) => (
+                    <Task
+                        id={todo.id}
+                        key={todo.id}
+                        text={todo.text}
+                        handleDeleteTodo={handleDeleteTodo}
+                      />
+                  ))}
+              </ul>
+            </div>
 
-          {/* In Progress Column */}
-          <div>
-            <h2 className="text-lg font-semibold mb-2">In Progress</h2>
-            <ul className="space-y-2">
-              {todos
-                .filter((t) => t.status === "in-progress")
-                .map((todo) => (
-                  <li key={todo.id} className="border p-2 rounded">
-                    {todo.text}
-                  </li>
-                ))}
-            </ul>
+            {/* Done Column */}
+            <div>
+              <h2 className="todo-column-title">Done</h2>
+              <ul className="todo-list">
+                {todos
+                  .filter((t) => t.status === "done")
+                  .map((todo) => (
+                    <Task
+                        id={todo.id}
+                        key={todo.id}
+                        text={todo.text}
+                        handleDeleteTodo={handleDeleteTodo}
+                      />
+                  ))}
+              </ul>
+            </div>
           </div>
-
-          {/* Done Column */}
-          <div>
-            <h2 className="text-lg font-semibold mb-2">Done</h2>
-            <ul className="space-y-2">
-              {todos
-                .filter((t) => t.status === "done")
-                .map((todo) => (
-                  <li
-                    key={todo.id}
-                    className="border p-2 rounded line-through text-gray-500"
-                  >
-                    {todo.text}
-                  </li>
-                ))}
-            </ul>
-          </div>
-        </div>
+        </DndContext>
       </div>
-
-      <DndContext onDragEnd={handleDragEnd}>
-        {parent === null ? draggableMarkup : null}
-
-        {containers.map((id) => (
-          // We updated the Droppable component so it would accept an `id`
-          // prop and pass it to `useDroppable`
-          <Droppable key={id} id={id}>
-            {parent === id ? draggableMarkup : "Drop here"}
-          </Droppable>
-        ))}
-      </DndContext>
     </>
   );
 };
