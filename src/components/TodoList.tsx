@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import type { TodoProps, TodoStatus } from "../utils/types";
-import "../index.css"
+import "../index.css";
 import {
   closestCorners,
   DndContext,
@@ -10,54 +10,46 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import {
-  arrayMove,
-  SortableContext,
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { v4 as uuidv4 } from "uuid";
 import useLocalStorage from "../hooks/useLocalStorage";
-import Task from "./Task";
+import Column from "./Column";
 
 const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
   const [todos, setTodos] = useLocalStorage("to-do list", tasks);
   const [newTodo, setNewTodo] = useState<string>("");
-  //set-up for drag and drop
-  // const containers = ["to-do", "in-progress", "done"];
-  const [parent, setParent] = useState(null);
-  // const [isDropped, setIsDropped] = useState(false);
 
-  function handleAddTodo(e: React.FormEvent<HTMLFormElement>) {
+  const handleAddTodo = useCallback((e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setTodos([...todos, { id: uuidv4(), text: newTodo, status: "to-do" }]);
+    setTodos(prev => [...prev, { id: uuidv4(), text: newTodo, status: "to-do" }]);
     setNewTodo("");
-  }
+  }, [newTodo, setTodos]);
 
-  function handleTodoStatus(todo: TodoProps, status: TodoStatus) {
-    setTodos((prev) =>
-      prev.map((t) => (t.id === todo.id ? { ...t, status: status } : t))
+  const handleTodoStatus = useCallback((todo: TodoProps, status: TodoStatus) => {
+    setTodos(prev =>
+      prev.map(t => (t.id === todo.id ? { ...t, status } : t))
     );
-  }
+  }, [setTodos]);
 
-  function handleDeleteTodo(id: string) {
-    setTodos((prev) => prev.filter((t) => t.id !== id));
-  }
+  const handleDeleteTodo = useCallback((id: string) => {
+    setTodos(prev => prev.filter(t => t.id !== id));
+  }, [setTodos]);
 
-  function getTodoPos(id) {
+  const getTodoPos = (id) => {
     return todos.findIndex((todo) => todo.id === id);
   }
-  function handleDragEnd(event) {
+
+  const handleDragEnd = (event) => {
     const { active, over } = event;
-    if (active.id == over.id) return;
-    setTodos((todos) => {
+
+    if (active.id === over.id) return;
+
+    setTodos(tasks => {
       const originalPos = getTodoPos(active.id);
       const newPos = getTodoPos(over.id);
-      return arrayMove(todos, originalPos, newPos);
+      return arrayMove(tasks, originalPos, newPos);
     });
-
-    setParent(over ? over.id : null);
-  }
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -67,90 +59,59 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
     })
   );
 
+  const filteredTodos = useMemo(() => ({
+    todo: todos.filter(t => t.status === "to-do"),
+    inProgress: todos.filter(t => t.status === "in-progress"),
+    done: todos.filter(t => t.status === "done")
+  }), [todos]);
+
   return (
-    <>
-      <div className="todo-container">
-        <h1 className="todo-title">Todo List</h1>
+    <div className="todo-container">
+      <h1 className="todo-title">Todo List</h1>
 
-        <form onSubmit={handleAddTodo} className="todo-form">
-          <input
-            type="text"
-            value={newTodo}
-            onChange={(e) => setNewTodo(e.target.value)}
-            placeholder="Add a new todo..."
-            className="todo-input"
-          />
-          <button type="submit" className="todo-button">
-            Add To-Do
-          </button>
-        </form>
-        {/* drag and drop feature avaliable and starts here */}
-        <DndContext
-          collisionDetection={closestCorners}
-          onDragEnd={handleDragEnd}
-          sensors={sensors}
-        >
-          {/* Columns for each status */}
-          <div className="todo-columns">
-            {/* To-Do Column */}
-            <div>
-              <h2 className="todo-column-title">To Do</h2>
-              <ul className="todo-list">
-                <SortableContext
-                  items={todos}
-                  strategy={verticalListSortingStrategy}
-                >
-                  {todos
-                    .filter((t: TodoProps) => t.status === "to-do")
-                    .map((todo: TodoProps) => (
-                      <Task
-                        id={todo.id}
-                        key={todo.id}
-                        text={todo.text}
-                        handleDeleteTodo={handleDeleteTodo}
-                      />
-                    ))}
-                </SortableContext>
-              </ul>
-            </div>
+      <form onSubmit={handleAddTodo} className="todo-form">
+        <input
+          type="text"
+          value={newTodo}
+          onChange={(e) => setNewTodo(e.target.value)}
+          placeholder="Add a new todo..."
+          className="todo-input"
+        />
+        <button type="submit" className="todo-button">
+          Add To-Do
+        </button>
+      </form>
 
-            {/* In Progress Column */}
-            <div>
-            <h2 className="todo-column-title">In Progress</h2>
-            <ul className="todo-list">
-                {todos
-                  .filter((t) => t.status === "in-progress")
-                  .map((todo) => (
-                    <Task
-                        id={todo.id}
-                        key={todo.id}
-                        text={todo.text}
-                        handleDeleteTodo={handleDeleteTodo}
-                      />
-                  ))}
-              </ul>
-            </div>
+      <DndContext
+        collisionDetection={closestCorners}
+        onDragEnd={handleDragEnd}
+        sensors={sensors}
+      >
+        <Column
+          id="to-do"
+          title="To Do"
+          status="to-do"
+          todos={filteredTodos.todo}
+          handleDeleteTodo={handleDeleteTodo}
+        />
 
-            {/* Done Column */}
-            <div>
-              <h2 className="todo-column-title">Done</h2>
-              <ul className="todo-list">
-                {todos
-                  .filter((t) => t.status === "done")
-                  .map((todo) => (
-                    <Task
-                        id={todo.id}
-                        key={todo.id}
-                        text={todo.text}
-                        handleDeleteTodo={handleDeleteTodo}
-                      />
-                  ))}
-              </ul>
-            </div>
-          </div>
-        </DndContext>
-      </div>
-    </>
+        <Column
+          id="in-progress"
+          title="In Progress"
+          status="in-progress"
+          todos={filteredTodos.inProgress}
+          handleDeleteTodo={handleDeleteTodo}
+        />
+
+        <Column
+          id="done"
+          title="Done"
+          status="done"
+          todos={filteredTodos.done}
+          handleDeleteTodo={handleDeleteTodo}
+        />
+      </DndContext>
+    </div>
   );
 };
 

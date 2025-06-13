@@ -2,7 +2,13 @@ import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
 import "../index.css";
 
-const Task = ({ id, text, handleDeleteTodo }) => {
+interface TaskProps {
+  id: string;
+  text: string;
+  handleDeleteTodo: (id: string) => void;
+}
+
+const Task = ({ id, text, handleDeleteTodo }: TaskProps) => {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
   const style = {
