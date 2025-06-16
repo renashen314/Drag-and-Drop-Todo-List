@@ -4,3 +4,8 @@ export type TodoProps = {
     status: string
 }
 export type TodoStatus = "to-do" | "in-progress" | "done";
+export type ColumnTypes = {
+    id: TodoStatus
+    title: string
+    items: TodoProps[]
+  }

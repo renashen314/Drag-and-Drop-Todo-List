@@ -19,6 +19,7 @@ interface ColumnProps {
 const Column = ({ id, status, todos, title, handleDeleteTodo }: ColumnProps) => {
     const [parent, setParent] = useState<TodoStatus>(status);
 
+
   return (
     <>
         <div className="todo-columns">
@@ -29,6 +30,7 @@ const Column = ({ id, status, todos, title, handleDeleteTodo }: ColumnProps) => 
                 items={todos}
                 strategy={verticalListSortingStrategy}
               >
+               
                 {todos
                   .map((todo: TodoProps) => (
                     <Task
