@@ -17,18 +17,15 @@ const Task = ({ id, text, handleDeleteTodo }: TaskProps) => {
   };
 
   return (
-    <li
-      ref={setNodeRef}
-      className="todo-item"
-      style={style}
-      {...attributes}
-      {...listeners}
-    >
-      <span className="todo-text">{text}</span>
-      <button onClick={() => handleDeleteTodo(id)} className="delete-btn">
-        X
-      </button>
-    </li>
+    <div className="todo-item">
+      <li ref={setNodeRef} style={style} {...attributes} {...listeners}>
+        <span className="icon">⋮</span>
+        <span>{text}</span>
+        <button onClick={() => handleDeleteTodo(id)} className="delete-btn">
+          X
+        </button>
+      </li>
+    </div>
   );
 };
 

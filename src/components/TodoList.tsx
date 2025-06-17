@@ -25,23 +25,7 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
   const [todos, setTodos] = useLocalStorage("to-do list", tasks);
   const [newTodo, setNewTodo] = useState<string>("");
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [cols, setCols] = useState<ColumnTypes[]>([
-    {
-      id: 'to-do',
-      title: 'To Do',
-      items: [],
-    },
-    {
-      id: 'in-progress',
-      title: 'In Progress',
-      items: [{ id: 'task-4', text: 'Record demo video', status:"in-progress" }],
-    },
-    {
-      id: 'done',
-      title: 'Done',
-      items: [{ id: 'task-5', text: 'Setup project', status:"done" }],
-    },
-  ])
+  const [cols, setCols] = useState<ColumnTypes[]>([])
 
   const handleAddTodo = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -151,42 +135,38 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
         onDragOver={handleDragOver}
         sensors={sensors}
       >
-        <Column
-          id="to-do"
-          title="To Do"
-          status="to-do"
-          todos={filteredTodos.todo}
-          handleDeleteTodo={handleDeleteTodo}
-        />
-
-        <Column
-          id="in-progress"
-          title="In Progress"
-          status="in-progress"
-          todos={filteredTodos.inProgress}
-          handleDeleteTodo={handleDeleteTodo}
-        />
-
-        <Column
-          id="done"
-          title="Done"
-          status="done"
-          todos={filteredTodos.done}
-          handleDeleteTodo={handleDeleteTodo}
-        />
+        {cols.map((col) => (
+          <div key={col.id} className="todo-columns"> 
+            <Column 
+              id={col.id}
+              title={col.title}
+              status={col.id}
+              todos={filteredTodos.todo}
+              handleDeleteTodo={handleDeleteTodo}
+            />
+            {col.items.length === 0 && (
+              <div className="flex h-20 items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800/30">
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  Drop items here
+                </p>
+              </div>
+            )}
+          </div>
+        ))}
       </DndContext>
     </div>
   );
 };
-const DroppableContainer = ({
-  id,
-  title,
-  items,
-}: {
-  id: string;
-  title: string;
-  items: TodoProps[];
-}) => {
-  const { setNodeRef } = useDroppable({id});
-};
+
+// const DroppableContainer = ({
+//   id,
+//   title,
+//   items,
+// }: {
+//   id: string;
+//   title: string;
+//   items: TodoProps[];
+// }) => {
+//   const { setNodeRef } = useDroppable({id});
+// };
 export default TodoList;
