@@ -9,35 +9,34 @@ import { useDroppable } from "@dnd-kit/core";
 
 interface ColumnProps {
   id: TodoStatus;
-  todos: TodoProps[];
+  tasks: TodoProps[];
   title: string;
   handleDeleteTodo: (id: string) => void;
 }
 
-const Column = ({ id, todos, title, handleDeleteTodo }: ColumnProps) => {
+const Column = ({ id, tasks, title, handleDeleteTodo }: ColumnProps) => {
   const {isOver, setNodeRef} = useDroppable({id})
   return (
     <>
-        <div className="todo-col" ref={setNodeRef} style={{backgroundColor: isOver? "rgba(91, 120, 160, 0.5)" : "rgba(31, 41, 55, 0.5)"}}>
-          <div>
-            <h2 className="todo-column-title">{title}</h2>
+        <div className="task-container" ref={setNodeRef} style={{backgroundColor: isOver? "rgba(91, 120, 160, 0.5)" : "rgba(31, 41, 55, 0.5)"}}>
+            <h2 className="task-column-title">{title}</h2>
               <SortableContext
-                items={todos.map(todo => todo.id)}
+                items={tasks.map(task => task.id)}
                 strategy={verticalListSortingStrategy}
               >
-            <ul>
-                {todos
-                  .map((todo: TodoProps) => (
+            <ul className="task-list">
+                {tasks
+                  .map((task: TodoProps) => (
                     <Task
-                      id={todo.id}
-                      key={todo.id}
-                      text={todo.text}
+                      id={task.id}
+                      key={task.id}
+                      text={task.text}
                       handleDeleteTodo={handleDeleteTodo}
                     />
                   ))}
             </ul>
               </SortableContext>
-          </div>
+          
         </div>
     </>
   );
