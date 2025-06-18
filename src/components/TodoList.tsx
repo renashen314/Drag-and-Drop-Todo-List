@@ -70,24 +70,43 @@ const TodoList = () => {
   );
 
   const handleDragEnd = ({ active, over }:DragEndEvent) => {
-    if(!over) return
+    if (!over) {
+      setActiveId(null);
+      return;
+    }
 
     const draggedTodoId = active.id;
     const droppedColumnId = over.id;
 
+    const activeContainerId = findContainerId(active.id);
+    const overContainerId = findContainerId(over.id);
+
+    if (!activeContainerId || !overContainerId) {
+      setActiveId(null);
+      return;
+    }
+
     setTodos(
       todos.map((todo) => {
-        if (todo.id === draggedTodoId) {
+        if (todo.id === active.id) {
           return {
             ...todo,
-            status: droppedColumnId,
+            status: overContainerId,
           };
         } else {
           return todo;
         }
       })
     );
-    
+
+    if (active.id !== over.id) {
+      setTodos((todos) => {
+        const originalPos = todos.findIndex(t => t.id === active.id)
+        const newPos = todos.findIndex(t => t.id === over.id)
+        return arrayMove(todos, originalPos, newPos);
+      })
+    }
+
   };
 
   // const handleDragEnd = (event: DragEndEvent) => {
@@ -212,6 +231,14 @@ const TodoList = () => {
     });
   };
 
+  // This function prevents item from picking up the over item's id as its new status
+  const findContainerId = (itemId) => {
+    if (cols.some((col) => col.id === itemId)) {
+      return itemId;
+    }
+    return cols.find((col) => col.items.some((item) => item.id === itemId))?.id;
+  };
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { delay: 100, tolerance: 5 },
@@ -222,12 +249,6 @@ const TodoList = () => {
     })
   );
 
-  const findContainerId = (itemId) => {
-    if (cols.some((col) => col.id === itemId)) {
-      return itemId;
-    }
-    return cols.find((col) => col.items.some((item) => item.id === itemId))?.id;
-  };
 
   const filteredTodos = useMemo(
     () => ({
