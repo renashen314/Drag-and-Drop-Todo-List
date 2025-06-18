@@ -5,28 +5,27 @@ import {
 import type { TodoProps, TodoStatus } from "../utils/types";
 import "../index.css";
 import Task from "./Task";
+import { useDroppable } from "@dnd-kit/core";
 
 interface ColumnProps {
-  id: string;
-  status: TodoStatus;
+  id: TodoStatus;
   todos: TodoProps[];
   title: string;
   handleDeleteTodo: (id: string) => void;
 }
 
-const Column = ({ id, status, todos, title, handleDeleteTodo }: ColumnProps) => {
-
+const Column = ({ id, todos, title, handleDeleteTodo }: ColumnProps) => {
+  const {isOver, setNodeRef} = useDroppable({id})
   return (
     <>
-        <div className="todo-col">
+        <div className="todo-col" ref={setNodeRef} style={{backgroundColor: isOver? "lavender" : "rgba(31, 41, 55, 0.5)"}}>
           <div>
             <h2 className="todo-column-title">{title}</h2>
-            <ul className="todo-list">
               <SortableContext
-                items={todos}
+                items={todos.map(todo => todo.id)}
                 strategy={verticalListSortingStrategy}
               >
-               
+            <ul>
                 {todos
                   .map((todo: TodoProps) => (
                     <Task
@@ -36,8 +35,8 @@ const Column = ({ id, status, todos, title, handleDeleteTodo }: ColumnProps) => 
                       handleDeleteTodo={handleDeleteTodo}
                     />
                   ))}
-              </SortableContext>
             </ul>
+              </SortableContext>
           </div>
         </div>
     </>

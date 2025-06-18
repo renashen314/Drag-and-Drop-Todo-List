@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import type { TodoProps, TodoStatus, ColumnTypes } from "../utils/types";
 import "../index.css";
 import {
@@ -7,7 +7,6 @@ import {
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
-  useDroppable,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -19,13 +18,37 @@ import { v4 as uuidv4 } from "uuid";
 import useLocalStorage from "../hooks/useLocalStorage";
 import Column from "./Column";
 
-
-
-const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
-  const [todos, setTodos] = useLocalStorage("to-do list", tasks);
+const TodoList = () => {
+  const [todos, setTodos] = useLocalStorage("to-do list", []);
   const [newTodo, setNewTodo] = useState<string>("");
   const [activeId, setActiveId] = useState<UniqueIdentifier | null>(null);
-  const [cols, setCols] = useState<ColumnTypes[]>([])
+  const [cols, setCols] = useState<ColumnTypes[]>([
+    {
+      id: "to-do",
+      title: "To Do",
+      items: [],
+    },
+    {
+      id: "in-progress",
+      title: "In Progress",
+      items: [],
+    },
+    {
+      id: "done",
+      title: "Done",
+      items: [],
+    },
+  ]);
+
+  // Sync cols with todos whenever todos change
+  useEffect(() => {
+    setCols(prevCols => 
+      prevCols.map(col => ({
+        ...col,
+        items: todos.filter(todo => todo.status === col.id)
+      }))
+    );
+  }, [todos]);
 
   const handleAddTodo = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
@@ -39,15 +62,6 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
     [newTodo, setTodos]
   );
 
-  const handleTodoStatus = useCallback(
-    (todo: TodoProps, status: TodoStatus) => {
-      setTodos((prev) =>
-        prev.map((t) => (t.id === todo.id ? { ...t, status } : t))
-      );
-    },
-    [setTodos]
-  );
-
   const handleDeleteTodo = useCallback(
     (id: string) => {
       setTodos((prev) => prev.filter((t) => t.id !== id));
@@ -55,37 +69,147 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
     [setTodos]
   );
 
-  const getTodoPos = (id) => {
-    return todos.findIndex((todo) => todo.id === id);
+  const handleDragEnd = ({ active, over }:DragEndEvent) => {
+    if(!over) return
+
+    const draggedTodoId = active.id;
+    const droppedColumnId = over.id;
+
+    setTodos(
+      todos.map((todo) => {
+        if (todo.id === draggedTodoId) {
+          return {
+            ...todo,
+            status: droppedColumnId,
+          };
+        } else {
+          return todo;
+        }
+      })
+    );
+    
   };
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveId(null);
-    const { active, over } = event;
-    if (!over) return;
+  // const handleDragEnd = (event: DragEndEvent) => {
+  //   const { active, over } = event;
+  //   if (!over) {
+  //     setActiveId(null);
+  //     return;
+  //   }
+    
+  //   const activeContainerId = findContainerId(active.id);
+  //   const overContainerId = findContainerId(over.id);
 
-    if (active.id !== over.id) {
-      setTodos((tasks) => {
-        const originalPos = getTodoPos(active.id);
-        const newPos = getTodoPos(over.id);
-        return arrayMove(tasks, originalPos, newPos);
-      });
-    }
-  };
+  //   if (!activeContainerId || !overContainerId) {
+  //     setActiveId(null);
+  //     return;
+  //   }
+
+  //   // Handle same container reordering
+  //   if (activeContainerId === overContainerId && active.id !== over.id) {
+  //     const containerIndex = cols.findIndex((c) => c.id === activeContainerId);
+  //     if (containerIndex === -1) {
+  //       setActiveId(null);
+  //       return;
+  //     }
+
+  //     const container = cols[containerIndex];
+  //     const activeIndex = container.items.findIndex(
+  //       (item) => item.id === active.id
+  //     );
+  //     const overIndex = container.items.findIndex(
+  //       (item) => item.id === over.id
+  //     );
+  //     if (activeIndex !== -1 && overIndex !== -1) {
+  //       const newItems = arrayMove(container.items, activeIndex, overIndex);
+  //       setCols((cols) => {
+  //         return cols.map((c, i) => {
+  //           if (i === containerIndex) {
+  //             return { ...c, items: newItems };
+  //           }
+  //           return c;
+  //         });
+  //       });
+  //     }
+  //   }
+    
+  //   // Handle cross-container movement
+  //   if (activeContainerId !== overContainerId) {
+  //     // Find the todo being dragged
+  //     const draggedTodo = todos.find(todo => todo.id === active.id);
+  //     if (draggedTodo) {
+  //       // Update the todo's status to the new container
+  //       setTodos(prev => 
+  //         prev.map(todo => 
+  //           todo.id === active.id 
+  //             ? { ...todo, status: overContainerId as TodoStatus }
+  //             : todo
+  //         )
+  //       );
+  //     }
+  //   }
+    
+  //   setActiveId(null);
+  // };
 
   const handleDragStart = (event: DragStartEvent) => {
     setActiveId(event.active.id);
   };
-  const handleDragOver = (event: DragOverEvent) => {
-    const { active, over } = event
-    if (!over) return
-    const activeContainerId = findContainerId(active.id)
-    const overContainerId = findContainerId(over.id)
 
-    if (!activeContainerId || !overContainerId) return
-    if (activeContainerId === overContainerId && active.id !== over.id) return
-    if (activeContainerId === overContainerId) return
+  const handleDragOver = (event) => {
+    const { active, over } = event;
+    if (!over) return;
+    const activeContainerId = findContainerId(active.id);
+    const overContainerId = findContainerId(over.id);
 
+    if (!activeContainerId || !overContainerId) return;
+    if (activeContainerId === overContainerId && active.id !== over.id) return;
+    if (activeContainerId === overContainerId) return;
+
+    setCols((prev) => {
+      const activeContainer = prev.find((c) => c.id === activeContainerId);
+      if (!activeContainer) return prev;
+      
+      // Find active item
+      const activeItem = activeContainer.items.find(
+        (item) => item.id === activeId
+      );
+      if (!activeItem) return prev;
+
+      const newContainers = prev.map((container) => {
+        if (container.id === activeContainerId) {
+          return {
+            ...container,
+            items: container.items.filter((item) => item.id !== activeId),
+          };
+        }
+
+        if (container.id === overContainerId) {
+          if (over.id === overContainerId) {
+            return {
+              ...container,
+              items: [...container.items, activeItem],
+            };
+          }
+          const overItemIndex = container.items.findIndex(
+            (item) => item.id === over.id
+          );
+
+          if (overItemIndex !== -1) {
+            return {
+              ...container,
+              items: [
+                ...container.items.slice(0, overItemIndex + 1),
+                activeItem,
+                ...container.items.slice(overItemIndex + 1),
+              ],
+            };
+          }
+        }
+        return container;
+      });
+      return newContainers;
+    });
   };
 
   const sensors = useSensors(
@@ -98,9 +222,12 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
     })
   );
 
-  const findContainerId = (id) => {
-
-  }
+  const findContainerId = (itemId) => {
+    if (cols.some((col) => col.id === itemId)) {
+      return itemId;
+    }
+    return cols.find((col) => col.items.some((item) => item.id === itemId))?.id;
+  };
 
   const filteredTodos = useMemo(
     () => ({
@@ -113,7 +240,7 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
 
   return (
     <div className="todo-container">
-      <h1 className="todo-title">Todo List</h1>
+      <h2 className="todo-title">Todo List</h2>
 
       <form onSubmit={handleAddTodo} className="todo-form">
         <input
@@ -123,7 +250,7 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
           placeholder="Add a new todo..."
           className="todo-input"
         />
-        <button type="submit" className="todo-button">
+        <button type="submit" className="add-todo-button">
           Add To-Do
         </button>
       </form>
@@ -135,38 +262,29 @@ const TodoList = ({ tasks }: { tasks: TodoProps[] }) => {
         onDragOver={handleDragOver}
         sensors={sensors}
       >
-        {cols.map((col) => (
-          <div key={col.id} className="todo-columns"> 
-            <Column 
-              id={col.id}
-              title={col.title}
-              status={col.id}
-              todos={filteredTodos.todo}
-              handleDeleteTodo={handleDeleteTodo}
-            />
-            {col.items.length === 0 && (
-              <div className="flex h-20 items-center justify-center rounded-md border border-dashed border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-800/30">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Drop items here
-                </p>
-              </div>
-            )}
-          </div>
-        ))}
+        <div className="todo-columns">
+          {cols.map((col) => (
+            <div key={col.id}>
+              <Column
+                id={col.id}
+                title={col.title}
+                todos={
+                  filteredTodos[
+                    col.id === "to-do"
+                      ? "todo"
+                      : col.id === "in-progress"
+                      ? "inProgress"
+                      : "done"
+                  ]
+                }
+                handleDeleteTodo={handleDeleteTodo}
+              />
+            </div>
+          ))}
+        </div>
       </DndContext>
     </div>
   );
 };
 
-// const DroppableContainer = ({
-//   id,
-//   title,
-//   items,
-// }: {
-//   id: string;
-//   title: string;
-//   items: TodoProps[];
-// }) => {
-//   const { setNodeRef } = useDroppable({id});
-// };
 export default TodoList;
