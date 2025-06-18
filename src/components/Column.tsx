@@ -18,7 +18,7 @@ const Column = ({ id, todos, title, handleDeleteTodo }: ColumnProps) => {
   const {isOver, setNodeRef} = useDroppable({id})
   return (
     <>
-        <div className="todo-col" ref={setNodeRef} style={{backgroundColor: isOver? "lavender" : "rgba(31, 41, 55, 0.5)"}}>
+        <div className="todo-col" ref={setNodeRef} style={{backgroundColor: isOver? "rgba(91, 120, 160, 0.5)" : "rgba(31, 41, 55, 0.5)"}}>
           <div>
             <h2 className="todo-column-title">{title}</h2>
               <SortableContext

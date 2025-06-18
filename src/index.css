@@ -81,7 +81,7 @@ li {
   display: flex;
   align-items: center;
   margin: 0.5rem;
-  justify-content:space-between;
+  gap: 1rem;
   border: 1px solid #374151;
   padding: 0.75rem;
   border-radius: 0.25rem;
@@ -89,6 +89,14 @@ li {
   background-color: #374151;
   touch-action: none;
   color: #e5e7eb;
+}
+.todo-item-overlay {
+  border: 1px solid #4c5a70;
+  padding: 0.75rem;
+  border-radius: 0.25rem;
+  cursor: grabbing;
+  touch-action: none;
+  background-color: #4c5a70;
 }
 
 .icon {

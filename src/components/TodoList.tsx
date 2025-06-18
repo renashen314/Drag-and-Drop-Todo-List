@@ -4,6 +4,7 @@ import "../index.css";
 import {
   closestCorners,
   DndContext,
+  DragOverlay,
   KeyboardSensor,
   PointerSensor,
   TouchSensor,
@@ -74,9 +75,6 @@ const TodoList = () => {
       setActiveId(null);
       return;
     }
-
-    const draggedTodoId = active.id;
-    const droppedColumnId = over.id;
 
     const activeContainerId = findContainerId(active.id);
     const overContainerId = findContainerId(over.id);
@@ -151,22 +149,7 @@ const TodoList = () => {
   //       });
   //     }
   //   }
-    
-  //   // Handle cross-container movement
-  //   if (activeContainerId !== overContainerId) {
-  //     // Find the todo being dragged
-  //     const draggedTodo = todos.find(todo => todo.id === active.id);
-  //     if (draggedTodo) {
-  //       // Update the todo's status to the new container
-  //       setTodos(prev => 
-  //         prev.map(todo => 
-  //           todo.id === active.id 
-  //             ? { ...todo, status: overContainerId as TodoStatus }
-  //             : todo
-  //         )
-  //       );
-  //     }
-  //   }
+  
     
   //   setActiveId(null);
   // };
@@ -239,6 +222,14 @@ const TodoList = () => {
     return cols.find((col) => col.items.some((item) => item.id === itemId))?.id;
   };
 
+const getActiveItem = () => {
+  for (const col of cols) {
+    const item = col.items.find((item) => item.id === activeId)
+    if (item) return item
+  }
+  return null
+}
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { delay: 100, tolerance: 5 },
@@ -303,9 +294,30 @@ const TodoList = () => {
             </div>
           ))}
         </div>
+        <DragOverlay>
+          {activeId ? (
+            <ItemOverlay>
+              {getActiveItem()?.text}
+            </ItemOverlay>
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );
 };
+
+const ItemOverlay = ({children}:{children: React.ReactNode}) => {
+  return (
+    <div>
+      <div className="todo-item-overlay">
+        <span className="icon">⋮</span>
+        <span>{children}</span>
+        <button>
+          X
+        </button>
+      </div>
+    </div>
+  )
+}
 
 export default TodoList;
