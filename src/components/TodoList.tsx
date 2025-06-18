@@ -169,6 +169,11 @@ const TodoList = () => {
     });
   };
 
+  const handleDragCancel = (event) => {
+    void event
+    setActiveId(null)
+  }
+
   // This function prevents item from picking up the over item's id as its new status
   const findContainerId = (itemId) => {
     if (containers.some((container) => container.id === itemId)) {
@@ -227,6 +232,7 @@ const getActiveItem = () => {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
+        onDragCancel={handleDragCancel}
         sensors={sensors}
       >
         <div className="task-columns">
@@ -267,10 +273,10 @@ const getActiveItem = () => {
 const ItemOverlay = ({children}:{children: React.ReactNode}) => {
   return (
     <div>
-      <div className="todo-item">
+      <div className="task-item-overlay">
         <span className="icon">⋮</span>
         <span>{children}</span>
-        <button>
+        <button className="delete-btn">
           X
         </button>
       </div>
