@@ -113,8 +113,8 @@ li {
 }
 
 .delete-btn {
-  background-color: #c93514; 
-  color: white;
+  background-color: rgba(31, 41, 55); 
+  color: rgb(211, 211, 211);
   padding: 0.25rem 1rem;
   cursor: pointer;
 }
