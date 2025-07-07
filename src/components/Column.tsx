@@ -41,17 +41,5 @@ const Column = ({ id, tasks, title, handleDeleteTodo }: ColumnProps) => {
     </>
   );
 };
-  
-// function ColumnsDroppables(cols: TodoStatus[]) {
-//     return (
-//       <section>
-//         {cols.map((id) => (
-//           <Droppable id={id} key={id}>
-//             Droppable container id: ${id}
-//           </Droppable>
-//         ))}
-//       </section>
-//     );
-//   }
 
 export default Column;

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import type { TodoProps, TodoStatus, ColumnTypes } from "../utils/types";
+import type { ColumnTypes } from "../utils/types";
 import "../index.css";
 import {
   closestCorners,
@@ -18,6 +18,7 @@ import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { v4 as uuidv4 } from "uuid";
 import useLocalStorage from "../hooks/useLocalStorage";
 import Column from "./Column";
+import DropToDelete from "./DropToDelete";
 
 const TodoList = () => {
   const [tasks, setTodos] = useLocalStorage("to-do list", []);
@@ -39,6 +40,7 @@ const TodoList = () => {
       title: "Done",
       items: [],
     },
+
   ]);
 
   // Sync containers with tasks whenever tasks change
@@ -64,11 +66,26 @@ const TodoList = () => {
   );
 
   const handleDeleteTodo = useCallback(
-    (id: string) => {
+    (id: UniqueIdentifier) => {
       setTodos((prev) => prev.filter((t) => t.id !== id));
     },
     [setTodos]
   );
+
+const handleUpdateStatus = useCallback((activeId: UniqueIdentifier, overContainerId: UniqueIdentifier) => {
+  setTodos(
+    tasks.map((task) => {
+      if (task.id === activeId) {
+        return {
+          ...task,
+          status: overContainerId,
+        };
+      } else {
+        return task;
+      }
+    })
+  );
+}, [setTodos, tasks]);
 
   const handleDragEnd = ({ active, over }:DragEndEvent) => {
     if (!over) {
@@ -79,23 +96,12 @@ const TodoList = () => {
     const activeContainerId = findContainerId(active.id);
     const overContainerId = findContainerId(over.id);
 
+
+
     if (!activeContainerId || !overContainerId) {
       setActiveId(null);
       return;
     }
-
-    setTodos(
-      tasks.map((task) => {
-        if (task.id === active.id) {
-          return {
-            ...task,
-            status: overContainerId,
-          };
-        } else {
-          return task;
-        }
-      })
-    );
 
     if (active.id !== over.id) {
       setTodos((tasks) => {
@@ -103,6 +109,13 @@ const TodoList = () => {
         const newPos = tasks.findIndex(t => t.id === over.id)
         return arrayMove(tasks, originalPos, newPos);
       })
+    }
+    if (overContainerId === "delete-area") {
+      handleDeleteTodo(active.id);
+      setActiveId(null);
+      return
+    } else {
+      handleUpdateStatus(active.id, overContainerId);
     }
 
   };
@@ -114,62 +127,63 @@ const TodoList = () => {
   };
 
   const handleDragOver = (event) => {
-    const { active, over } = event;
-    if (!over) return;
-    const activeContainerId = findContainerId(active.id);
-    const overContainerId = findContainerId(over.id);
+    // const { active, over } = event;
+    // if (!over) return;
+    
+    // const activeContainerId = findContainerId(active.id);
+    // const overContainerId = findContainerId(over.id);
 
-    if (!activeContainerId || !overContainerId) return;
-    if (activeContainerId === overContainerId && active.id !== over.id) return;
-    if (activeContainerId === overContainerId) return;
+    // if (!activeContainerId || !overContainerId) return;
+    // if (activeContainerId === overContainerId && active.id !== over.id) return;
+    // if (activeContainerId === overContainerId) return;
 
-    setContainers((prev) => {
-      const activeContainer = prev.find((c) => c.id === activeContainerId);
-      if (!activeContainer) return prev;
+    // setContainers((prev) => {
+    //   const activeContainer = prev.find((c) => c.id === activeContainerId);
+    //   if (!activeContainer) return prev;
       
-      // Find active item
-      const activeItem = activeContainer.items.find(
-        (item) => item.id === activeId
-      );
-      if (!activeItem) return prev;
+    //   // Find active item
+    //   const activeItem = activeContainer.items.find(
+    //     (item) => item.id === active.id
+    //   );
+    //   if (!activeItem) return prev;
 
-      const newContainers = prev.map((container) => {
-        if (container.id === activeContainerId) {
-          return {
-            ...container,
-            items: container.items.filter((item) => item.id !== activeId),
-          };
-        }
+    //   const newContainers = prev.map((container) => {
+    //     if (container.id === activeContainerId) {
+    //       return {
+    //         ...container,
+    //         items: container.items.filter((item) => item.id !== active.id),
+    //       };
+    //     }
 
-        if (container.id === overContainerId) {
-          if (over.id === overContainerId) {
-            return {
-              ...container,
-              items: [...container.items, activeItem],
-            };
-          }
-          const overItemIndex = container.items.findIndex(
-            (item) => item.id === over.id
-          );
+    //     if (container.id === overContainerId) {
+    //       if (over.id === overContainerId) {
+    //         return {
+    //           ...container,
+    //           items: [...container.items, activeItem],
+    //         };
+    //       }
+    //       const overItemIndex = container.items.findIndex(
+    //         (item) => item.id === over.id
+    //       );
 
-          if (overItemIndex !== -1) {
-            return {
-              ...container,
-              items: [
-                ...container.items.slice(0, overItemIndex + 1),
-                activeItem,
-                ...container.items.slice(overItemIndex + 1),
-              ],
-            };
-          }
-        }
-        return container;
-      });
-      return newContainers;
-    });
+    //       if (overItemIndex !== -1) {
+    //         return {
+    //           ...container,
+    //           items: [
+    //             ...container.items.slice(0, overItemIndex + 1),
+    //             activeItem,
+    //             ...container.items.slice(overItemIndex + 1),
+    //           ],
+    //         };
+    //       }
+    //     }
+    //     return container;
+    //   });
+    //   return newContainers;
+    // });
   };
 
-  const handleDragCancel = (event) => {
+  const handleDragCancel = (event: DragEndEvent) => {
     void event
     setActiveId(null)
   }
@@ -226,7 +240,7 @@ const getActiveItem = () => {
           Add To-Do
         </button>
       </form>
-
+      <div className="area-container">
       <DndContext
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
@@ -235,6 +249,7 @@ const getActiveItem = () => {
         onDragCancel={handleDragCancel}
         sensors={sensors}
       >
+       
         <div className="task-columns">
           {containers.map((container) => (
             <div key={container.id}>
@@ -255,6 +270,7 @@ const getActiveItem = () => {
             </div>
           ))}
         </div>
+        <DropToDelete />
         <DragOverlay
         dropAnimation={{
           duration:150,
@@ -266,6 +282,7 @@ const getActiveItem = () => {
           ) : null}
         </DragOverlay>
       </DndContext>
+        </div>
     </div>
   );
 };
