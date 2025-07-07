@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import type { TodoProps, TodoStatus, ColumnTypes } from "../utils/types";
+import type { TodoProps, ColumnTypes } from "../utils/types";
 import "../index.css";
 import {
   closestCorners,
@@ -10,7 +10,9 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
+  type DragCancelEvent,
   type DragEndEvent,
+  type DragOverEvent,
   type DragStartEvent,
   type UniqueIdentifier,
 } from "@dnd-kit/core";
@@ -46,7 +48,7 @@ const TodoList = () => {
     setContainers(prev => 
       prev.map(con => ({
         ...con,
-        items: tasks.filter(task => task.status === con.id)
+        items: tasks.filter((task: TodoProps) => task.status === con.id)
       }))
     );
   }, [tasks]);
@@ -54,7 +56,7 @@ const TodoList = () => {
   const handleAddTodo = useCallback(
     (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
-      setTodos((prev) => [
+      setTodos((prev: TodoProps[]) => [
         ...prev,
         { id: uuidv4(), text: newTodo, status: "to-do" },
       ]);
@@ -65,7 +67,7 @@ const TodoList = () => {
 
   const handleDeleteTodo = useCallback(
     (id: string) => {
-      setTodos((prev) => prev.filter((t) => t.id !== id));
+      setTodos((prev: TodoProps[]) => prev.filter((t) => t.id !== id));
     },
     [setTodos]
   );
@@ -85,7 +87,7 @@ const TodoList = () => {
     }
 
     setTodos(
-      tasks.map((task) => {
+      tasks.map((task: TodoProps) => {
         if (task.id === active.id) {
           return {
             ...task,
@@ -98,7 +100,7 @@ const TodoList = () => {
     );
 
     if (active.id !== over.id) {
-      setTodos((tasks) => {
+      setTodos((tasks: TodoProps[]) => {
         const originalPos = tasks.findIndex(t => t.id === active.id)
         const newPos = tasks.findIndex(t => t.id === over.id)
         return arrayMove(tasks, originalPos, newPos);
@@ -113,7 +115,7 @@ const TodoList = () => {
     setActiveId(event.active.id);
   };
 
-  const handleDragOver = (event) => {
+  const handleDragOver = (event: DragOverEvent) => {
     const { active, over } = event;
     if (!over) return;
     const activeContainerId = findContainerId(active.id);
@@ -169,13 +171,13 @@ const TodoList = () => {
     });
   };
 
-  const handleDragCancel = (event) => {
+  const handleDragCancel = (event: DragCancelEvent) => {
     void event
     setActiveId(null)
   }
 
   // This function prevents item from picking up the over item's id as its new status
-  const findContainerId = (itemId) => {
+  const findContainerId = (itemId: string | UniqueIdentifier) => {
     if (containers.some((container) => container.id === itemId)) {
       return itemId;
     }
@@ -203,9 +205,9 @@ const getActiveItem = () => {
 
   const filteredTodos = useMemo(
     () => ({
-      task: tasks.filter((t) => t.status === "to-do"),
-      inProgress: tasks.filter((t) => t.status === "in-progress"),
-      done: tasks.filter((t) => t.status === "done"),
+      task: tasks.filter((t: TodoProps) => t.status === "to-do"),
+      inProgress: tasks.filter((t: TodoProps) => t.status === "in-progress"),
+      done: tasks.filter((t: TodoProps) => t.status === "done"),
     }),
     [tasks]
   );
